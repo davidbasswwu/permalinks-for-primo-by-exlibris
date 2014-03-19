@@ -1,0 +1,10 @@
+RewriteEngine on
+
+# redirect OneSearch links
+
+RewriteCond %{REQUEST_fileNAME} !-d
+RewriteCond %{REQUEST_fileNAME} !-f		
+RewriteRule ^.*$ /onesearch/index.php [NC,L]
+
+
+# RewriteRule ^([^/\.]+)/?$ /onesearch/index.php?a=$1 [L]
