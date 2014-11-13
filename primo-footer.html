@@ -1,400 +1,40 @@
-  <!--begin footer-->
-    <div class="EXLFooterLinksContainer">
-      <ul class="EXLFooterLinksList1">
-        <li class="EXLFooterFirstLink"><a href="http://library.wwu.edu/">Library Home</a></li>
-        <li><a href="http://www.wwu.edu/">Western Washington University Home</a></li>
-        <li class="EXLFooterLastLink"><a href="http://askus.library.wwu.edu/">Ask Us!</a></li>
-      </ul>
-      <ul class="EXLFooterLinksList2">
-        <li class="EXLFooterFirstLink"><a href="#">Powered by ExLibris Primo</a></li>
-        <li><a href="#">Copyright &copy; 2014 </a></li>
-        <!--<li class="EXLFooterLastLink"><a href="#">Accessibility Statement &amp; Disclaimer</a></li>-->
-      </ul>
-    </div>
-
-  <script type="text/javascript" src="//library.wwu.edu/info/scripts/jquery-cookie.js"></script>
-
-  <script>
-	/*
-		copyright 2014 WWU Libraries
-		license: MIT
-		version 1.0
-		author: David Bass
-		summary: create a peramalink (short URL) and inject it into the Primo search results page or the display.do page
-		notes: this code lives in our footer file (http://library.wwu.edu/info/primo/wwu_footer.html), but you can probably put it in your header if you prefer.
-	*/
-
-
-  	// thanks to Niklas Lehto for this solution
- 	// http://onesearch.library.wwu.edu/primo_library/libweb/action/dlBasketGet.do?vid=WWU&redirectTo=myAccount
-	  if (document.location.href.indexOf("redirectTo=myAccount") != -1){
-		  document.location = "myAccountMenu.do?vid=WWU";
-	  }
-
-
-      // http://stackoverflow.com/questions/5075395/alternative-to-jquery-inarray
-      Array.prototype.ourIndexOf = function(v) {
-          for ( var i = 0, length = this.length; i < length; i++ ) {
-             if ( typeof this[i] === 'string' && this[i].indexOf(v) > -1 ) {
-                  return i;
-             }
-          }
-          return -1;
-      };
-
-
-      function GetURLParameter(sParam) {
-          // thanks to http://jquerybyexample.blogspot.com/2012/06/get-url-parameters-using-jquery.html
-          var sPageURL = window.location.search.substring(1);
-          var sURLVariables = sPageURL.split('&');
-          for (var i = 0; i < sURLVariables.length; i++) {
-              var sParameterName = sURLVariables[i].split('=');
-              if (sParameterName[0] == sParam) {
-                  return sParameterName[1];
-              }
-          }
-      }
-
-
-  	$(document).ready(function() {
-  		// include this with any code that needs to be tested and hidden from the public //////////////
-
-  		var searchTerm = $("#search_field").val();
-  		var testCookie = $.cookie('testmode');
-  		var testCookie2 = $.cookie('testmode2');
-
-  		if ((testCookie) || (testCookie2)) {
-  			// while this is in dev mode, lets only show this to people who search for tabsearch
-  		} else {
-
-  			// does the user want to try the experimental features?
-  			if (searchTerm == "testmode") {
-  				// set a session cookie to enable tab search results;
-  				$.cookie('testmode', 'true',  { path: '/' });
-  				// redirect to the homepage;
-  				document.location = "http://library.wwu.edu/";
-  			}
-
-              if (searchTerm == "testmode2") {
-  				// set a session cookie to enable tab search results;
-  				$.cookie('testmode2', 'true',  { path: '/' });
-  				// redirect to the homepage;
-  				document.location = "http://library.wwu.edu/";
-  			}
-
-
-
-          }
-
-  		if (testCookie) {
-  			// put any experimental code here...
-  			console.log("-------------- test mode -----------------------");
-  			$(".EXLMainMenuITEMFindInDB").show();		// hide the 'Find Databases' link if we are not in testmode
-
-
-  		}
-
-  		if (testCookie2) {
-  			// put any experimental code here...
-  			console.log("-------------- testmode2 -----------------------");
-              /* 08nov2013 - show a short url for the search results */
-              var searchPage = document.location.href.toLowerCase().indexOf("search.do");
-              if (searchPage != -1) {
-                  var search_query = $("#search_field").val();
-                  if (search_query != "") {
-                      var scope_url = GetURLParameter('scp.scps');        // if the filename is search.do
-                      var search_scope_url = GetURLParameter('search_scope');      // if the filename is dlSearch.do
-                      var clean_scope = "";
-                      if ((scope_url == "scope%3A%28WWU%29") || (scope_url == "scope%3A(WWU)") || (search_scope_url == "Books")) {
-                          scope = "/wwu_only";
-                      } else if ((scope_url == "scope%3A%28NZ%29%2Cscope%3A%28WWU%29") || (search_scope_url == "wwu_summit")) {
-                          scope = "/wwu_summit";
-                      } else {
-                          scope = "";     // Everything;
-                      }
-
-                      search_query = search_query.split(' ').join('+');       // replace spaces with plus
-
-                      var permaLink = "/search/" + search_query + scope;
-
-                      /* show the permalink in the address bar */
-                      // http://stackoverflow.com/questions/17507091/replacestate-vs-pushstate
-                      // window.history.replaceState('Object', 'Title', permaLink);      // show the Permalink in the address bar;
-                      window.history.pushState('Object', 'Title', permaLink);      // show the Permalink in the address bar;
-
-                      $("head").append("<base href='/primo_library/libweb/action/'>");        // add the base href to the links
-                  }
-              }
-
-              var displayPage = document.location.href.toLowerCase().indexOf("display.do");
-              if (displayPage != -1) {
-                  // only run this code on the display page for now; do not run in search results page
-                  $(document).on("ajaxComplete", function(){
-                      // console.log("ajaxComplete");
-                      var $mmsId = $("[id^='Alma record number']");
-
-                      var almaId = $mmsId.find("span.EXLDetailsDisplayVal").text();
-                      almaId = $.trim(almaId);
-                      // console.log("almaId " + almaId);
-
-                       if (almaId) {
-                           var permaLink = "/display/" + almaId;
-
-                          /* show the permalink in the address bar */
-                          // http://stackoverflow.com/questions/17507091/replacestate-vs-pushstate
-                          // window.history.replaceState('Object', 'Title', permaLink);      // show the Permalink in the address bar;
-                          window.history.pushState('Object', 'Title', permaLink);      // show the Permalink in the address bar;
-
-                          $("head").append("<base href='/primo_library/libweb/action/'>");        // add the base href to the links
-                       }
-                  });
-
-              }
-
-          }
-
-
-      });
-
-
-  	// replace the link on error.do with a different link;
-  	$("#exlidErrorSubMessage").html("If the problem persists, please <a href='http://askus.library.wwu.edu/browse.php?tid=23567'>contact us</a>.");
-
-
-  	// hide the "Available in the library" top-level facets;
-  	$(document).ready(function() {
-
-  		// add the "Search Tips" link below Advanced Search and Browse Search links
-  		var tipsLink = "<div> <a target='_blank' href='http://library.wwu.edu/onesearch-tips'>Search Tips</a> </div>";
-  		$(".EXLSearchFieldRibbonBrowseSearchLink").append(tipsLink);
-
-
-  		if (document.location.href.toLowerCase().indexOf("search.do") != -1){
-  			// if we are on a search results page, hide the 'available in the library' top-level facet;
-
-  			/* remove the top (horizontal row) facet */
-  			var keepLooking = true;
-  			$(".EXLTopLevelFacetItem").each(function() {
-  				if (keepLooking) {
-  					var $topLevelFacetLabel = $(this).text();			// this is the text that appears to the patron
-  					var containsMatch = $topLevelFacetLabel.indexOf("Available in the Library");
-  					if (containsMatch != -1) {
-  						// we have a match; hide it;
-  						$(this).hide();
-  						// we do not need to go any further; there will only be one of these in the list
-  						keepLooking = false;
-  					}
-  				}
-  			});
-
-  			/* remove from the left column (facets) */
-  			var keepLooking = true;
-  			$("#exlidFacetSublistX LI.EXLFacet").each(function() {
-  				if (keepLooking) {
-  					var $topLevelFacetLabel = $(this).text();		// this is the text that appears to the patron
-  					var containsMatch = $topLevelFacetLabel.indexOf("Available in the Library");
-  					if (containsMatch != -1) {
-  						// we have a match; hide it;
-  						$(this).hide();
-  						// we do not need to go any further; there will only be one of these in the list
-  						keepLooking = false;
-  					}
-  				}
-  			});
-  		}
-
-
-          /* 13nov2013 - show a short url for the search results */
-          var searchPage = document.location.href.toLowerCase().indexOf("search.do");
-          if (searchPage != -1) {
-
-              // do not show on the browse search page
-              var fn = GetURLParameter('fn');        // conjunction conjunction, what's your function?
-              if (fn !== "BrowseRedirect") {
-
-                  // do not create a permalink if src = permalink
-                  var src = GetURLParameter('src');
-                  // if (src !== "permalink") {
-
-                      var search_query = $("#search_field").val();
-                      if (search_query != "") {
-                          var scope_url = GetURLParameter('scp.scps');
-                          // console.log(scope_url);
-
-                          var search_scope_url = GetURLParameter('search_scope');
-                          var clean_scope = "";
-                          if ((scope_url == "scope%3A%28WWU%29") || (scope_url == "scope%3A(WWU)") || (search_scope_url == "Books")) {
-                              scope = "/wwu_only";
-                          } else if ((scope_url == "scope%3A%28NZ%29%2Cscope%3A%28WWU%29") || (search_scope_url == "wwu_summit")) {
-                              scope = "/wwu_summit";
-                          } else if ((scope_url == "WorldCatLocal_WWU") || (search_scope_url == "WorldCat")) {
-                              scope = "/worldcat";
-                          } else {
-                              scope = "";     // Everything;
-                          }
-
-                          search_query = search_query.split(' ').join('+');       // replace spaces with plus
-                          search_query = search_query.replace(/\//g, "%252F");    // replace slashes with special character that will be converted back to slashes in the php redirector code
-
-                          var permaLink = "http://library.wwu.edu/onesearch/" + search_query + scope;
-                          var permaLinkPretty = "<div title='permaLink - share this URL with others' id='permalinkPretty'><span class='disable-select'>Permalink for this search: </span><span class='perma-link'>" + permaLink + "</span> <span class='display-block'> </span></div>";
-                          $("#exlidHeaderContainer").append(permaLinkPretty);
-                      }
-                  // }
-              }
-          }
-      });
-
-
-      /*  create a permalink on the display page for a specific item */
-      var displayPage = document.location.href.toLowerCase().indexOf("display.do");
-      if (displayPage != -1) {
-          // only run this code on the display page for now; do not run in search results page
-
-          $(document).ajaxError(function(e, jqxhr, settings, exception) {
-              console.log("exception = " + exception);
-          });
-
-          $(window).load(function() {
-          // $(document).on('ajaxComplete', function() {
-              // are there any reliable identifiers (DOI, PMID, etc...) in the Details section?
-              // the Alma record number (aka "MMSID") is found near the bottom of the page
-
-              // is there an Alma record number (aka, MMSID)?
-              var $mmsId = $("[id^='Alma record number']");
-              var almaId = $mmsId.find("span.EXLDetailsDisplayVal").text();
-              almaId = $.trim(almaId);
-              if (almaId) {
-                  var permaLink = "<span class='wwu_permalink'>http://library.wwu.edu/onesearch/" + almaId + "</span>";
-                  var permaLinkPretty = "<div title='permaLink - share this URL with others' id='permalinkPretty' class='permalinkPretty-displayPage'><span class='disable-select'>Permalink for this item: </span><span class='perma-link'>" + permaLink + "</span> <span class='display-block'> </span></div>";
-                  $("#exlidHeaderContainer").append(permaLinkPretty);
-              } else {
-                  // AlmaID is the most reliable, but if it doesn't exist, try to find another useful identifier;
-
-                  var onesearch_identifier = $("#Identifier1 > span.EXLDetailsDisplayVal").text();
-                  // console.log("identifier = " + onesearch_identifier);
-
-                  var issn_number = "";
-
-                  // example:
-                      // E-ISSN: 1749-6632 ; PMID: 21599697 Version:1 DOI: 10.1111/j.1749-6632.2011.06036.x
-                  var id_array = onesearch_identifier.split(";");
-                  var ISSN_slice_id = id_array.ourIndexOf("ISSN");
-                  var PMID_slice_id = id_array.ourIndexOf("PMID");
-                  var DOI_slice_id = id_array.ourIndexOf("DOI");
-
-                  // PMID + ISSN is preferred over DOI because it's shorter and less complex
-
-                  if (PMID_slice_id >= 0) {
-
-                      // use the ISSN in the permalink to enhance accuracy
-                      if (ISSN_slice_id >= 0) {
-                          var issn = id_array[ISSN_slice_id];
-                          var issn_nolabel = issn.split(":");
-                          var issn_number = $.trim(issn_nolabel[1]) + "+";    // the 2nd element of the array
-                      }
-
-                      var pmid = $.trim(id_array[PMID_slice_id]);    // get the PMID value, starting at the end of "PMID:" to the end of the string
-
-                      // they often look like 'PMID: 21599697 Version:1', and we only want the number;
-
-                      /// we must remove the slash to make it useful and compatible with the redirector script
-                      var pmid = pmid.replace("PMID: ", "");
-                      var pmid_noversion = pmid.split(" ");
-                      var pmid_number = pmid_noversion[0];    // the first half of the array
-
-                      var permaLink = "<span class='wwu_permalink'>http://library.wwu.edu/onesearch/" + issn_number + pmid_number + "</span>";
-                      var permaLinkPretty = "<div title='permaLink - share this URL with others' id='permalinkPretty' class='permalinkPretty-displayPage'><span class='disable-select'>Permalink for this item: </span><span class='perma-link'>" + permaLink + "</span> <span class='display-block'> </span></div>";
-                      $("#exlidHeaderContainer").append(permaLinkPretty);
-
-                  } else if (DOI_slice_id >= 0) {
-
-                      // is there a DOI?
-                      // this assumes that the onesearch_identifier looks something like this:
-                      // ISSN: 0036-8075 ; DOI: 10.1126/.science.1148010
-                      // it can also look like this:
-                      // onesearch_Identifier: ISSN: 0006-3207 ; DOI: 10.1016/j.biocon.2009.02.023 ; E-ISSN: 1873-2917
-                      // or
-                      // onesearch_Identifier: ISSN: 0003-4819 ; DOI: http://dx.doi.org/10.7326/0003-4819-114-9-814_6
-                      // we must replace the slash with a different character to bypass the Apache rewriterule issue, and then reverse that change in PHP
-
-                      var doi = id_array[DOI_slice_id];    // get the DOI value, starting at the end of "DOI:" to the end of the string
-                      doi = doi.replace("DOI: ", "");
-
-                      /// we must remove the slash to make it useful and compatible with the redirector script
-                      var doi_nohttp = doi.replace("http://dx.doi.org/", "");
-                      var doi_noslash = doi_nohttp.replace(/\//g, "%252F");
-                      doi_noslash = $.trim(doi_noslash);
-
-                      // the DOI alone is often not specific enough to link to one specific article, without adding another characteristic like the author's name or part of the title;
-                      // only get the first author's name; sometimes the list of authors names is quite long
-
-                      var author = $("#Author1").text();
-                      author = $.trim(author.replace("Author:", ""));
-
-                      var author_array = author.split(";");
-                      var first_author = $.trim(author_array[0]);    // get the first element of the array and trim it
-                      first_author = first_author.replace(/,/g, ' ');     // replace all commas with a space
-                      first_author = first_author.replace(/\s{1,}/g, '+');     // replace all whitespace characters spaces with the plus symbol
-                      var permaLink = "<span class='wwu_permalink'>http://library.wwu.edu/onesearch/DOI:" + doi_noslash + "-author:" + first_author + "</span>";
-                      var permaLinkPretty = "<div title='permaLink - share this URL with others' id='permalinkPretty' class='permalinkPretty-displayPage'><span class='disable-select'>Permalink for this item: </span><span class='perma-link'>" + permaLink + "</span> <span class='display-block'> </span></div>";
-                      $("#exlidHeaderContainer").append(permaLinkPretty);
-                  }
-              }
-
-          });
-      }
-
-
-
-
-  	/* Springshare Chat - David Bass - 13 Sep 2013 --- */
-
-  	var libchat_btn = {
-  	   iid: "92",
-  	   key: "your-libchat-key-here",
-  	   domain: "askus.library.wwu.edu",
-  	   splash: "Welcome to Western Libraries Chat!",
-  	   button_online: "http://library.wwu.edu/info/primo/wwuchat_on4.png",
-  	   button_offline: "http://library.wwu.edu/info/primo/wwuchat_off4.png",
-  	   offline_url: "http://askus.library.wwu.edu/browse.php?tid=23567",
-  	   question: "Please enter question below:",
-  	   star_ratings: true,
-  	   star_text: "Please rate this chat:",
-  	   depart_id: "146"
-  	};
-
-  	// replace the contactalibrarian div with the Springshare Chat
-  	$("#exlidSearchBanner").html("<div id='libchat_btn_widget'></div>");
-
-
-  	/* hide the "help" link in the top-right corner - 13sep2013 */
-  	$(".EXLMainMenuITEMHelp").hide();
-
-
-  </script>
-
-
-  <script type="text/javascript" src="//libanswers.com/js/chat_load_client.js"></script>
-
-
-  <script>
-    // Google Analytics
-    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-    ga('create', 'UA-your-id-here', 'wwu.edu');
-    ga('set', 'anonymizeIp', true);
-    ga('send', 'pageview');
-
-
-    // Heap Analytics
-    var heap=heap||[];heap.load=function(a){window._heapid=a;var b=document.createElement("script");b.type="text/javascript",b.async=!0,b.src=("https:"===document.location.protocol?"https:":"http:")+"//cdn.heapanalytics.com/js/heap.js";var c=document.getElementsByTagName("script")[0];c.parentNode.insertBefore(b,c);var d=function(a){return function(){heap.push([a].concat(Array.prototype.slice.call(arguments,0)))}},e=["identify","track"];for(var f=0;f<e.length;f++)heap[e[f]]=d(e[f])};
-    heap.load("your-heap-id-here");
-
-  </script>
+<!--begin footer-->
+<script>
+/*
+	copyright 2014 WWU Libraries
+	license: MIT
+	version 1.0
+	author: David Bass
+	summary: create a peramalink (short URL) and inject it into the Primo search results page or the display.do page
+	notes: this code lives in our footer file (http://library.wwu.edu/info/primo/wwu_footer.html), but you can probably put it in your header if you prefer.
+*/
+
+  // hide the "Available in the library" top-level facets;
+  $(document).ready(function() {
+
+    /*  show the ExLibris-generated permalink on the display page for a specific item */
+    var displayPage = document.location.href.toLowerCase().indexOf("display.do");
+    if (displayPage != -1) {
+        // only run this code on the display page for now; do not run in search results page
+
+        // Primo 4.6 introduced item-level permalinks, so let's use those instead of the homegrown permalinks
+        var exli_permaLink = $(".EXLButtonSendToPermalink").find("a").attr("href");
+        // this should return something like
+            //    "permalink.do?docId=TN_springer_jour10.2165/00003495-200161130-00006&vid=WWU&fn=permalink"
+        exli_permaLink = exli_permaLink.split('?');     // split the exli_permalink at the question mark
+        exli_permaLink = exli_permaLink[1];             // use what follows the question mark
+
+        var docId = GetParameter(exli_permaLink,"docId");      // extract the docId value from that string
+        var vid = GetParameter(exli_permaLink,"vid");           // extract the vid value from the exli_permalink string
+        var exli_permaLink_final = "http://onesearch.library.wwu.edu/" + vid + ":" + docId;     // put the pieces together
+        var permaLink = "<span class='wwu_permalink'>" + exli_permaLink_final + "</span>";
+
+        var permaLinkPretty = "<div title='permaLink - share this URL with others' id='permalinkPretty' class='permalinkPretty-displayPage'><span class='disable-select'>Permalink for this item: </span><span class='perma-link'>" + permaLink + "</span> <span class='display-block'> </span></div>";
+        $("#exlidHeaderContainer").append(permaLinkPretty);
+    }
+});
+
+</script>
 
 
 
@@ -403,15 +43,6 @@
   	.WWU_link {
   		height: 16px !important;
   		width: 16px !important;
-  	}
-
-  	.EXLSearchFieldRibbonAdvancedSearchLink a.EXLSearchFieldRibbonAdvancedTwoLinks {
-  		/* shift the Advanced Search link up to accomodate Search Tips */
-  		padding-top: 0.8em;
-  	}
-
-  	.EXLMainMenuITEMFindInDB {
-  		display:none;
   	}
 
       .disable-select {
@@ -440,7 +71,6 @@
       }
 
   </style>
-
 
 
 <!--end footer-->
